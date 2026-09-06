@@ -13,15 +13,9 @@ rule, not a writing task, so it belongs in the code.
 import json
 import os
 
-from dotenv import load_dotenv
-from openai import OpenAI
+from llm import chat
 
-load_dotenv()
 
-client = OpenAI(
-    base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1"),
-    api_key="ollama",
-)
 
 MODEL = os.getenv("OLLAMA_MODEL", "llama3.1:8b")
 
@@ -127,20 +121,12 @@ def _build_input(data, analysis, strengths, vigilance):
 
 def _call_model(payload):
     """Send the request to the local model and return the raw text answer."""
-    response = client.chat.completions.create(
-        model=MODEL,
-        temperature=0.2,  # slight freedom on wording, none on the figures
-        response_format={"type": "json_object"},
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {
-                "role": "user",
-                "content": "Rédige la synthèse et la justification à partir de "
-                "ces éléments :\n\n" + json.dumps(payload, indent=2, ensure_ascii=False),
-            },
-        ],
+    return chat(
+        SYSTEM_PROMPT,
+        "Rédige la synthèse et la justification à partir de ces éléments :\n\n"
+        + json.dumps(payload, indent=2, ensure_ascii=False),
+        temperature=0.2,
     )
-    return response.choices[0].message.content
 
 
 def write_report(data, analysis):

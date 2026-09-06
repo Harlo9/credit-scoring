@@ -1,0 +1,17 @@
+# Visual identity of the tool: light institutional theme.
+#
+# The theme is pinned to "light" on purpose. The app is read over a shoulder
+# for thirty seconds and its screenshots end up in presentation documents, so
+# it must not inherit the browser's dark mode and render differently from one
+# desk to the next.
+#
+# These five colours are the single source of truth for the palette; the CSS
+# block at the top of app.py mirrors them as custom properties.
+
+[theme]
+base = "light"
+primaryColor = "#1B3B6F"            # deep institutional blue, accent only
+backgroundColor = "#F7F7F4"         # off-white page ground
+secondaryBackgroundColor = "#FFFFFF"  # cards, form, sidebar
+textColor = "#33404D"               # slate grey
+font = "sans serif"

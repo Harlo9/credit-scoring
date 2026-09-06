@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Analyse de demandes de crédit professionnel</title>
+<style>
+:root {
+  --c-bg: #F7F7F4;
+  --c-surface: #FFFFFF;
+  --c-border: #E3E3DD;
+  --c-text: #33404D;
+  --c-muted: #6C7784;
+  --c-accent: #1B3B6F;
+  --c-track: #E7E7E1;
+  --c-neutral-pale: #F1F1ED;
+
+  --c-good: #3F8A5F;
+  --c-good-ink: #2E6042;
+  --c-good-line: #C3DBCB;
+  --c-good-pale: #EFF6F1;
+  --c-good-mid: #86B79A;
+
+  --c-watch: #C9871B;
+  --c-watch-ink: #8A5C10;
+  --c-watch-line: #EDD9A9;
+  --c-watch-pale: #FDF6E7;
+
+  --c-bad: #B3392A;
+  --c-bad-ink: #8E2C20;
+  --c-bad-line: #EBC6C1;
+  --c-bad-pale: #FBEFEC;
+
+  --font: "Inter", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+}
+
+@page { size: A4 portrait; margin: 15mm; }
+
+* { box-sizing: border-box; }
+
+html { background: var(--c-bg); }
+
+body {
+  width: 180mm;
+  min-height: 267mm;
+  margin: 0 auto;
+  padding: 15mm;
+  background: var(--c-surface);
+  color: var(--c-text);
+  font-family: var(--font);
+  font-size: 8pt;
+  line-height: 1.3;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+h1 {
+  margin: 0;
+  font-size: 13.5pt;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--c-accent);
+}
+
+h2 {
+  margin: 0 0 1.3mm;
+  font-size: 7.8pt;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--c-accent);
+}
+
+p { margin: 0; }
+ul { margin: 0; padding: 0; list-style: none; }
+
+.lede {
+  margin-top: 1.2mm;
+  font-size: 8.6pt;
+  color: var(--c-text);
+  max-width: 155mm;
+}
+
+header {
+  padding-bottom: 2.4mm;
+  border-bottom: 2px solid var(--c-accent);
+}
+
+section { margin-top: 3.4mm; }
+
+.note {
+  margin-top: 1.4mm;
+  font-size: 7.2pt;
+  color: var(--c-muted);
+}
+
+/* --- Grille ------------------------------------------------------------- */
+
+table { width: 100%; border-collapse: collapse; }
+
+thead th {
+  padding: 0 1.5mm 1mm;
+  font-size: 7pt;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--c-muted);
+  text-align: left;
+  border-bottom: 1px solid var(--c-border);
+}
+
+thead th.num { text-align: right; }
+
+tbody td {
+  padding: 0.95mm 1.5mm;
+  border-bottom: 1px solid var(--c-border);
+  vertical-align: middle;
+}
+
+tbody tr:last-child td { border-bottom: none; }
+
+td.crit { font-weight: 600; width: 46mm; }
+td.what { color: var(--c-muted); }
+td.num {
+  width: 9mm;
+  text-align: right;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--c-accent);
+}
+td.bar { width: 34mm; padding-right: 0; }
+
+.track {
+  height: 3.2mm;
+  background: var(--c-track);
+  border-radius: 1.6mm;
+  overflow: hidden;
+}
+.fill { height: 100%; background: var(--c-accent); border-radius: 1.6mm; }
+
+.scale {
+  margin-top: 1.8mm;
+  padding-top: 1.8mm;
+  border-top: 1px solid var(--c-border);
+}
+
+.bands {
+  display: flex;
+  gap: 1.6mm;
+  margin-top: 1.6mm;
+}
+
+.band {
+  flex: 1;
+  padding: 1.2mm 1.8mm;
+  border: 1px solid;
+  border-radius: 1.5mm;
+}
+
+.band b { display: block; font-size: 8.4pt; font-weight: 600; }
+.band span { font-size: 7.4pt; }
+
+.band.b1 { background: var(--c-good-pale); border-color: var(--c-good-line); color: var(--c-good-ink); }
+.band.b2 { background: var(--c-good-pale); border-color: var(--c-good-line); color: var(--c-good); }
+.band.b2 span { color: var(--c-good-ink); }
+.band.b3 { background: var(--c-watch-pale); border-color: var(--c-watch-line); color: var(--c-watch-ink); }
+.band.b4 { background: var(--c-bad-pale); border-color: var(--c-bad-line); color: var(--c-bad-ink); }
+
+/* --- Architecture ------------------------------------------------------- */
+
+.flow {
+  display: flex;
+  align-items: stretch;
+  gap: 1.2mm;
+  margin-bottom: 2mm;
+}
+
+.step {
+  flex: 1;
+  padding: 1.5mm 1.5mm;
+  border: 1px solid var(--c-border);
+  border-radius: 1.5mm;
+  background: var(--c-neutral-pale);
+  text-align: center;
+}
+
+.step b { display: block; font-size: 8pt; font-weight: 600; }
+.step span { font-size: 7pt; color: var(--c-muted); }
+
+.step.llm { background: var(--c-good-pale); border-color: var(--c-good-line); }
+.step.llm b { color: var(--c-good-ink); }
+.step.code { background: var(--c-surface); border: 1.5px solid var(--c-accent); }
+.step.code b { color: var(--c-accent); }
+
+.arrow {
+  align-self: center;
+  color: var(--c-accent);
+  font-size: 10pt;
+  line-height: 1;
+}
+
+.files {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: repeat(3, auto);
+  grid-auto-flow: column;
+  column-gap: 6mm;
+  row-gap: 0.6mm;
+}
+.files li { display: flex; gap: 2mm; }
+.files code {
+  flex: 0 0 21mm;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 7.4pt;
+  color: var(--c-accent);
+  font-weight: 600;
+}
+.files span { color: var(--c-muted); }
+
+/* --- Décisions ---------------------------------------------------------- */
+
+.cols3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 3mm; }
+
+.card {
+  padding: 1.8mm 2.2mm;
+  border: 1px solid var(--c-border);
+  border-left: 3px solid var(--c-accent);
+  border-radius: 1.5mm;
+  background: var(--c-bg);
+}
+
+.card b { color: var(--c-accent); }
+.card p { margin-top: 1mm; color: var(--c-muted); }
+
+/* --- Exemple ------------------------------------------------------------ */
+
+.demo {
+  display: grid;
+  grid-template-columns: 40mm 1fr 1fr;
+  gap: 3mm;
+  align-items: start;
+}
+
+.verdict {
+  padding: 1.8mm 2.2mm;
+  border: 1px solid var(--c-watch-line);
+  border-radius: 1.5mm;
+  background: var(--c-watch-pale);
+  color: var(--c-watch-ink);
+}
+
+.score { font-size: 18pt; font-weight: 600; line-height: 1; }
+.score small { font-size: 9pt; font-weight: 400; }
+.verdict p { margin-top: 1mm; font-size: 7.8pt; }
+
+.hd {
+  font-size: 7pt;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 1mm;
+}
+.hd.ok { color: var(--c-good-ink); }
+.hd.ko { color: var(--c-bad-ink); }
+
+.pts li { padding-left: 3.2mm; position: relative; margin-bottom: 0.5mm; }
+.pts li::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 1.2mm;
+  width: 1.6mm; height: 1.6mm;
+  border-radius: 50%;
+}
+.pts.ok li::before { background: var(--c-good); }
+.pts.ko li::before { background: var(--c-bad); }
+
+.case { margin-top: 1.4mm; font-size: 7.2pt; color: var(--c-muted); }
+
+@media print {
+  html { background: var(--c-surface); }
+  body {
+    width: auto;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+  }
+}
+
+/* --- Limites ------------------------------------------------------------ */
+
+.limits {
+  margin-top: 3mm;
+  padding-top: 2mm;
+  border-top: 1px solid var(--c-border);
+  font-size: 7.6pt;
+  color: var(--c-muted);
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Analyse de demandes de crédit professionnel</h1>
+  <p class="lede">L'outil lit une demande de financement en texte libre, telle qu'elle arrive par email, et rend une fiche de synthèse avec un score de risque, une recommandation et les pièces à réclamer, sans qu'aucune donnée client ne sorte de la machine.</p>
+</header>
+
+<section>
+  <h2>La grille de scoring</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Critère</th>
+        <th>Ce que je calcule</th>
+        <th class="num">Poids</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="crit">Capacité de remboursement</td>
+        <td class="what">Service de la dette rapporté à la CAF</td>
+        <td class="num">30</td>
+        <td class="bar"><div class="track"><div class="fill" style="width:100%"></div></div></td>
+      </tr>
+      <tr>
+        <td class="crit">Tendance du résultat</td>
+        <td class="what">Variation du résultat net d'un exercice à l'autre</td>
+        <td class="num">15</td>
+        <td class="bar"><div class="track"><div class="fill" style="width:50%"></div></div></td>
+      </tr>
+      <tr>
+        <td class="crit">Endettement global</td>
+        <td class="what">Dette totale rapportée au chiffre d'affaires</td>
+        <td class="num">15</td>
+        <td class="bar"><div class="track"><div class="fill" style="width:50%"></div></div></td>
+      </tr>
+      <tr>
+        <td class="crit">Rentabilité</td>
+        <td class="what">Marge nette</td>
+        <td class="num">10</td>
+        <td class="bar"><div class="track"><div class="fill" style="width:33.3%"></div></div></td>
+      </tr>
+      <tr>
+        <td class="crit">Apport</td>
+        <td class="what">Part du projet financée par l'entreprise</td>
+        <td class="num">10</td>
+        <td class="bar"><div class="track"><div class="fill" style="width:33.3%"></div></div></td>
+      </tr>
+      <tr>
+        <td class="crit">Ancienneté</td>
+        <td class="what">Années d'existence de l'entreprise</td>
+        <td class="num">10</td>
+        <td class="bar"><div class="track"><div class="fill" style="width:33.3%"></div></div></td>
+      </tr>
+      <tr>
+        <td class="crit">Secteur</td>
+        <td class="what">Coefficient d'exposition du secteur d'activité</td>
+        <td class="num">5</td>
+        <td class="bar"><div class="track"><div class="fill" style="width:16.6%"></div></div></td>
+      </tr>
+      <tr>
+        <td class="crit">Nature du bien financé</td>
+        <td class="what">Ce que la banque peut saisir et revendre</td>
+        <td class="num">5</td>
+        <td class="bar"><div class="track"><div class="fill" style="width:16.6%"></div></div></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="scale">
+    <p>Chaque critère est noté de 0 à 3, de favorable à défavorable. Les notes pondérées donnent un score de 0 à 100, où 100 est le dossier le plus sûr.</p>
+    <div class="bands">
+      <div class="band b1"><b>75 à 100</b><span>Accord de principe</span></div>
+      <div class="band b2"><b>60 à 74</b><span>Accord sous conditions</span></div>
+      <div class="band b3"><b>40 à 59</b><span>Instruction en comité</span></div>
+      <div class="band b4"><b>0 à 39</b><span>Analyse renforcée, avis défavorable en l'état</span></div>
+    </div>
+    <p class="note">Ces poids viennent d'un raisonnement métier, pas de données de défaut observées. Avec un historique réel, on les ajusterait par régression.</p>
+  </div>
+</section>
+
+<section>
+  <h2>Architecture</h2>
+  <div class="flow">
+    <div class="step"><b>Texte libre</b><span>Demande copiée d'un email</span></div>
+    <div class="arrow">&rarr;</div>
+    <div class="step llm"><b>Extraction</b><span>LLM local</span></div>
+    <div class="arrow">&rarr;</div>
+    <div class="step code"><b>Scoring</b><span>Code déterministe</span></div>
+    <div class="arrow">&rarr;</div>
+    <div class="step llm"><b>Rédaction</b><span>LLM local</span></div>
+    <div class="arrow">&rarr;</div>
+    <div class="step"><b>Fiche</b><span>Score, points, pièces</span></div>
+  </div>
+  <ul class="files">
+    <li><code>extraction.py</code><span>Texte libre vers JSON structuré</span></li>
+    <li><code>scoring.py</code><span>Critères, seuils et poids, regroupés en haut du fichier</span></li>
+    <li><code>report.py</code><span>Classement des points, puis rédaction de la fiche</span></li>
+    <li><code>llm.py</code><span>Client Ollama, trente lignes de bibliothèque standard</span></li>
+    <li><code>app.py</code><span>Interface Streamlit, données extraites éditables</span></li>
+  </ul>
+  <p class="note">Stack : Ollama et llama3.1:8b en local, scoring en Python pur, Streamlit pour l'interface, pytest pour le moteur. Trois dépendances au total.</p>
+</section>
+
+<section>
+  <h2>Trois décisions clés</h2>
+  <div class="cols3">
+    <div class="card">
+      <b>Le LLM ne calcule jamais le score, et ne classe même pas les critères.</b>
+      <p>Un score doit tomber pareil à chaque lancement et s'expliquer ligne par ligne. Quand j'ai laissé le modèle trier les critères, il a placé la capacité de remboursement dans les points forts et dans les points de vigilance.</p>
+    </div>
+    <div class="card">
+      <b>Modèle local plutôt que cloud.</b>
+      <p>Ce n'est pas un choix technique, c'est un choix métier. On parle de liasses fiscales et de données nominatives, ça ne part pas chez un fournisseur externe. J'ai déjà déployé du RAG on-premise avec Ollama, donc je sais que ça tient.</p>
+    </div>
+    <div class="card">
+      <b>Une donnée manquante n'est pas une donnée défavorable.</b>
+      <p>Un critère non calculable sort du calcul et les poids sont renormalisés (une note neutre ramenait les dossiers vides vers la moyenne). Sous 70 % de complétude, la recommandation bascule sur pièces complémentaires.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Exemple de sortie</h2>
+  <div class="demo">
+    <div class="verdict">
+      <div class="score">42<small> / 100</small></div>
+      <p><b>Risque élevé</b><br>Instruction en comité</p>
+    </div>
+    <div>
+      <div class="hd ok">Points forts</div>
+      <ul class="pts ok">
+        <li>Endettement contenu à 25 % du CA</li>
+        <li>Rentabilité positive de 4,3 %</li>
+        <li>Entreprise établie depuis 3 ans</li>
+      </ul>
+    </div>
+    <div>
+      <div class="hd ko">Points de vigilance</div>
+      <ul class="pts ko">
+        <li>Résultat net en baisse de 49 %</li>
+        <li>Service de la dette estimé à 95 % de la CAF</li>
+        <li>Aucun apport</li>
+        <li>Secteur bâtiment exposé aux défaillances</li>
+      </ul>
+    </div>
+  </div>
+  <p class="case">Demande d'exemple : SARL du bâtiment, 3 ans, 420 000 € de CA, 65 000 € demandés, sans apport. La CAF réelle et la durée de prêt n'étant pas communiquées, elles remontent en vigilance et deviennent des pièces à réclamer.</p>
+</section>
+
+<p class="limits">Limites : crédit professionnel uniquement, une demande immobilier ou conso renvoie « grille non applicable » &middot; déclaratif, aucune pièce justificative n'est vérifiée &middot; seuils, coefficients de secteur et facteur de CAF non calibrés &middot; aucun refus automatique, l'outil oriente et un humain décide.</p>
+
+</body>
+</html>

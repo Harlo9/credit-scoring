@@ -7,17 +7,8 @@ matters for banking documents.
 import json
 import os
 
-from dotenv import load_dotenv
-from openai import OpenAI
+from llm import chat
 
-load_dotenv()
-
-# Ollama exposes an OpenAI-compatible API. The api_key is required by the
-# SDK but never checked by Ollama.
-client = OpenAI(
-    base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1"),
-    api_key="ollama",
-)
 
 MODEL = os.getenv("OLLAMA_MODEL", "llama3.1:8b")
 
@@ -144,19 +135,10 @@ def _validate(data: dict) -> dict:
 
 def _call_model(text: str) -> str:
     """Send the request to the local model and return the raw text answer."""
-    response = client.chat.completions.create(
-        model=MODEL,
-        temperature=0,  # deterministic output: same input, same extraction
-        response_format={"type": "json_object"},  # Ollama JSON mode
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {
-                "role": "user",
-                "content": f"Demande à analyser :\n\n<demande>\n{text}\n</demande>",
-            },
-        ],
+    return chat(
+        SYSTEM_PROMPT,
+        f"Demande à analyser :\n\n<demande>\n{text}\n</demande>",
     )
-    return response.choices[0].message.content
 
 
 def extract(text: str) -> dict:
