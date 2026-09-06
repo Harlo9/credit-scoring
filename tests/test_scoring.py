@@ -783,7 +783,12 @@ def test_purpose_wording_is_fixed_by_the_note():
 
     assert detail["phrase"] == scoring.PURPOSE_PHRASES[detail["note"]]
 
-
+def test_lookup_keeps_the_worst_matching_keyword():
+    """A label matching several keywords is graded on the riskiest one."""
+    assert scoring._lookup("Aménagement de mon local commercial",
+                           scoring.PURPOSE_RISK) == 2
+    assert scoring._lookup("Commerce de matériaux de bâtiment",
+                           scoring.SECTOR_RISK) == 2
 # --- Determinism -------------------------------------------------------------
 
 def test_the_same_input_always_gives_the_same_output():

@@ -204,14 +204,21 @@ def _floor_pct(ratio, decimals=0):
 
 
 def _lookup(text, table):
-    """Find a risk note by matching keywords inside a free-text label."""
+    """Find a risk note by matching keywords inside a free-text label.
+
+    Several keywords can match a single label. We keep the highest note,
+    never the first one found: a fit-out of a business premises matches
+    both "local" and "aménagement", and the collateral value is the one
+    of the fit-out, not of the walls.
+    """
     if not text:
         return None
     lowered = text.lower()
-    for keyword, note in table.items():
-        if keyword in lowered:
-            return note
-    return DEFAULT_TABLE_NOTE
+    notes = [note for keyword, note in table.items() if keyword in lowered]
+    if not notes:
+        return DEFAULT_TABLE_NOTE
+    return max(notes)
+
 
 
 def annual_payment(amount, years=DEFAULT_LOAN_YEARS, rate=DEFAULT_ANNUAL_RATE):
