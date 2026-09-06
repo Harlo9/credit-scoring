@@ -626,8 +626,9 @@ RISK_BANDS = {
 
 # Criterion appraisal, by risk note: favourable, correct, unfavourable, very
 # unfavourable. Four dots, one per note, so the table reads without the
-# figures. This is a display scale only; report.build_highlights keeps its own
-# split between a strength and a point to watch.
+# figures. report.build_highlights reads the same scale: "good" is what it
+# lists as a strength, "watch" and "bad" what it lists as a point to watch,
+# and a "fair" criterion appears in this table only.
 NOTE_BANDS = {0: "good", 1: "fair", 2: "watch", 3: "bad"}
 
 

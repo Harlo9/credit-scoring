@@ -21,6 +21,7 @@ version would fit them on observed default rates.
 """
 
 import json
+import math
 
 # --- Configuration -----------------------------------------------------------
 # Everything tunable lives here. No threshold is hardcoded inside a function.
@@ -88,8 +89,9 @@ THRESHOLDS = {
     # Net margin. Thresholds are deliberately low: construction, transport and
     # retail routinely run at 2 to 4%.
     "profitability": [(0.01, 3), (0.03, 2), (0.06, 1)],
-    # Share of the project funded by the company itself.
-    "down_payment": [(0.001, 2), (0.10, 1), (0.20, 0)],
+    # Share of the project funded by the company itself. Three tiers: under
+    # 10% the bank carries almost all of the project, 20% is the usual bar.
+    "down_payment": [(0.10, 2), (0.20, 1)],
     # Years of existence.
     "company_age": [(1.0, 3), (3.0, 2), (5.0, 1)],
 }
@@ -155,6 +157,15 @@ MISSING_DATA_LABELS = [
     (("down_payment",), "Apport non renseigné"),
 ]
 
+# Two of those values are only expected when something makes them relevant:
+# there is no instalment to state without an encours to service, and no
+# duration to state without a loan to spread. Reported as missing otherwise,
+# they would push a complete file towards "documents to request" for nothing.
+MISSING_DATA_PREREQUISITES = {
+    "existing_debt_annual_payment": "existing_debt",
+    "loan_duration_years": "requested_amount",
+}
+
 
 # --- Helpers -----------------------------------------------------------------
 
@@ -174,6 +185,22 @@ def _grade(value, bounds, default_note=3):
         if value < upper:
             return note
     return default_note
+
+
+def _floor_pct(ratio, decimals=0):
+    """Percentage of a ratio, always rounded down.
+
+    Rounding to the nearest prints 49.7% as "50%" on a criterion the grid
+    graded as under 50%. Every threshold sits on a round percentage, so the
+    figure shown must never claim more than the value that was graded:
+    rounded down, the number on the sheet always grades to the note printed
+    next to it.
+
+    The round() guards the floor against binary representation: 0.29 * 100
+    is 28.999999999999996, which would otherwise print as "28%".
+    """
+    factor = 10 ** decimals
+    return f"{math.floor(round(ratio * 100 * factor, 6)) / factor:g}%"
 
 
 def _lookup(text, table):
@@ -273,7 +300,8 @@ def score_repayment_capacity(d):
     ratio = service / flow
     note = _grade(ratio, THRESHOLDS["debt_service"])
     verb = "contenu à" if note <= 1 else "estimé à"
-    return note, f"{ratio:.0%} de la CAF", f"Service de la dette {verb} {ratio:.0%} de la CAF"
+    percent = _floor_pct(ratio)
+    return note, f"{percent} de la CAF", f"Service de la dette {verb} {percent} de la CAF"
 
 
 def score_income_trend(d):
@@ -283,9 +311,14 @@ def score_income_trend(d):
         return None, "non calculable", None
     change = (net - previous) / abs(previous)
     note = _grade(change, THRESHOLDS["income_trend"], default_note=0)
-    phrase = (f"Résultat net en progression de {change:.0%}" if change >= 0
-              else f"Résultat net en baisse de {abs(change):.0%}")
-    return note, f"{change:+.0%}", phrase
+    # Floored on the signed change, so the figure stays on the side of the
+    # threshold the note was read from. One decimal because the sign turns
+    # the flooring against us here: on whole points a 9.1% drop would be
+    # shown as a 10% one.
+    percent = _floor_pct(change, decimals=1)
+    phrase = (f"Résultat net en progression de {percent}" if change >= 0
+              else f"Résultat net en baisse de {percent.lstrip('-')}")
+    return note, f"+{percent}" if change >= 0 else percent, phrase
 
 
 def score_total_debt(d):
@@ -295,9 +328,10 @@ def score_total_debt(d):
         return None, "non calculable", None
     ratio = ((_num(d, "existing_debt") or 0) + amount) / revenue
     note = _grade(ratio, THRESHOLDS["total_debt"])
-    phrase = (f"Endettement contenu à {ratio:.0%} du CA" if note <= 1
-              else f"Dette totale représentant {ratio:.0%} du CA")
-    return note, f"{ratio:.0%} du CA", phrase
+    percent = _floor_pct(ratio)
+    phrase = (f"Endettement contenu à {percent} du CA" if note <= 1
+              else f"Dette totale représentant {percent} du CA")
+    return note, f"{percent} du CA", phrase
 
 
 def score_profitability(d):
@@ -307,13 +341,16 @@ def score_profitability(d):
         return None, "non calculable", None
     ratio = net / revenue
     note = _grade(ratio, THRESHOLDS["profitability"], default_note=0)
+    # One decimal: the thresholds here are 1, 3 and 6%, whole points would
+    # collapse the three tiers onto the same figure.
+    percent = _floor_pct(ratio, decimals=1)
     if ratio < 0:
-        phrase = f"Marge nette négative de {ratio:.1%}"
+        phrase = f"Marge nette négative de {percent}"
     elif note <= 1:
-        phrase = f"Rentabilité positive de {ratio:.1%}"
+        phrase = f"Rentabilité positive de {percent}"
     else:
-        phrase = f"Rentabilité faible de {ratio:.1%}"
-    return note, f"{ratio:.1%}", phrase
+        phrase = f"Rentabilité faible de {percent}"
+    return note, percent, phrase
 
 
 def score_down_payment(d):
@@ -323,13 +360,14 @@ def score_down_payment(d):
         return None, "non renseigné", None
     ratio = down / amount
     note = _grade(ratio, THRESHOLDS["down_payment"], default_note=0)
+    percent = _floor_pct(ratio)
     if ratio == 0:
         phrase = "Aucun apport"
     elif note <= 1:
-        phrase = f"Apport de {ratio:.0%} du montant demandé"
+        phrase = f"Apport de {percent} du montant demandé"
     else:
-        phrase = f"Apport limité à {ratio:.0%} du montant demandé"
-    return note, f"{ratio:.0%}", phrase
+        phrase = f"Apport limité à {percent} du montant demandé"
+    return note, percent, phrase
 
 
 def score_company_age(d):
@@ -446,11 +484,21 @@ def compute_score(data):
     }
 
 
+def _is_expected(d, fields):
+    """Whether these values are relevant to this request at all.
+
+    Same falsy reading of the prerequisite as debt_service() and
+    _assumptions(): an encours of 0 is an answer, not an encours.
+    """
+    return all(_num(d, MISSING_DATA_PREREQUISITES[field])
+               for field in fields if field in MISSING_DATA_PREREQUISITES)
+
+
 def missing_data(d):
     """Wording for every value the analysis had to do without."""
     labels = []
     for fields, label in MISSING_DATA_LABELS:
-        if all(_num(d, f) is None for f in fields):
+        if _is_expected(d, fields) and all(_num(d, f) is None for f in fields):
             labels.append(label)
     return labels
 
@@ -472,7 +520,6 @@ def _out_of_scope(loan_type):
                     "qui ne couvre que le crédit professionnel."],
         "hypotheses": [],
         "criteres_non_evalues": [label for label, _ in CRITERIA.values()],
-        "donnees_manquantes": [],
         "donnees_manquantes": [],
         "detail_criteres": [],
     }
