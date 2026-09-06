@@ -1,4 +1,7 @@
 [![tests](https://github.com/Harlo9/credit-scoring/actions/workflows/tests.yml/badge.svg)](https://github.com/Harlo9/credit-scoring/actions/workflows/tests.yml)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue)
+![Ollama](https://img.shields.io/badge/LLM-Ollama%20local-black)
+![License](https://img.shields.io/badge/license-MIT-green)
 
 # Analyse de demandes de crédit professionnel
 
