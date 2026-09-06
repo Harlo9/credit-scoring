@@ -124,7 +124,7 @@ la note imprimée à côté de lui.
 Prérequis : Python 3.10 ou plus, et [Ollama](https://ollama.com).
 
 ```bash
-git clone https://github.com/credit-scoring.git
+git clone https://github.com/VOTRE-PSEUDO/credit-scoring.git
 cd credit-scoring
 
 python3 -m venv .venv
