@@ -1,3 +1,5 @@
+[![tests](https://github.com/Harlo9/credit-scoring/actions/workflows/tests.yml/badge.svg)](https://github.com/Harlo9/credit-scoring/actions/workflows/tests.yml)
+
 # Analyse de demandes de crédit professionnel
 
 Outil interne qui transforme une demande de financement en texte libre, copiée
