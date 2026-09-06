@@ -9,7 +9,7 @@ Tout tourne en local. Aucune donnée client ne sort de la machine.
 
 ## Démo
 
-![Démonstration de l'outil](docs/demo_bancaire1.gif)
+![Démonstration de l'outil](docs/demo.gif)
 
 **En entrée**, une demande de financement en texte libre, telle qu'elle arrive
 par email ou par formulaire :
