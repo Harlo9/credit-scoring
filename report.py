@@ -11,16 +11,16 @@ rule, not a writing task, so it belongs in the code.
 """
 
 import json
-import os
 
 from llm import chat
 
 
-
-MODEL = os.getenv("OLLAMA_MODEL", "llama3.1:8b")
-
-# Notes 0 and 1 are strengths, 2 and 3 are vigilance points.
-STRENGTH_MAX_NOTE = 1
+# Three bands, on the same scale the criteria table displays. A note of 0 is
+# favourable and argues for the file; 2 and 3 are unfavourable and have to be
+# looked at. A note of 1 is correct without being an argument either way:
+# listing it as a strength would sell a middling criterion as a good one.
+STRENGTH_MAX_NOTE = 0
+VIGILANCE_MIN_NOTE = 2
 
 MAX_STRENGTHS = 3
 MAX_VIGILANCE = 6
@@ -87,6 +87,10 @@ def _validate(data):
 def build_highlights(analysis):
     """Split criteria into strengths and vigilance points, deterministically.
 
+    A criterion graded as merely correct carries neither list: it is in the
+    criteria table for whoever wants it, and saying nothing about it is more
+    honest than filing it under either heading.
+
     Vigilance also carries the missing values: an absent figure is a risk,
     not a neutral blank. Worst criteria come first, missing data last.
     """
@@ -95,7 +99,7 @@ def build_highlights(analysis):
     strengths = [c["phrase"] for c in scored if c["note"] <= STRENGTH_MAX_NOTE]
 
     weak = sorted(
-        [c for c in scored if c["note"] > STRENGTH_MAX_NOTE],
+        [c for c in scored if c["note"] >= VIGILANCE_MIN_NOTE],
         key=lambda c: (-c["note"], -c["poids"]),
     )
     vigilance = [c["phrase"] for c in weak] + analysis.get("donnees_manquantes", [])

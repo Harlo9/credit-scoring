@@ -5,12 +5,9 @@ matters for banking documents.
 """
 
 import json
-import os
 
 from llm import chat
 
-
-MODEL = os.getenv("OLLAMA_MODEL", "llama3.1:8b")
 
 # Fields every request must carry, whatever the loan type.
 CORE_SCHEMA = {
