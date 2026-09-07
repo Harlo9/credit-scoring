@@ -220,7 +220,6 @@ def _lookup(text, table):
     return max(notes)
 
 
-
 def annual_payment(amount, years=DEFAULT_LOAN_YEARS, rate=DEFAULT_ANNUAL_RATE):
     """Yearly instalment of a fixed-rate amortizing loan."""
     monthly_rate = rate / 12
@@ -437,6 +436,16 @@ def compute_score(data):
     if loan_type not in SUPPORTED_LOAN_TYPES:
         return _out_of_scope(loan_type)
 
+    # A missing loan type is only assumed to be a business one when the
+    # request actually looks like one. With no company data at all, the
+    # grid has nothing to grade: assuming "pro" would score a private
+    # individual on company accounts.
+    if loan_type is None and not any(
+            _num(data, key) is not None or data.get(key)
+            for key in ("company_type", "sector", "company_age_years",
+                        "revenue", "net_income")):
+        return _out_of_scope(loan_type)
+
     details, risk_points, active_weight, missing = [], 0, 0, []
 
     for key, (label, func) in CRITERIA.items():
@@ -468,13 +477,20 @@ def compute_score(data):
     reliable = completeness >= COMPLETENESS_FLOOR
     issues = check_plausibility(data)
 
+    # Injection signals raised before the request ever reached the model. A
+    # local model follows an order written inside a client email, and our own
+    # eval measures it doing exactly that. So a flagged file never carries a
+    # decision on its own, however good its figures look: those figures may
+    # be the ones the sender asked for.
+    signals = data.get("injection_signals") or []
+
     level, recommendation = _decide(score)
 
     # Reliability gates. These are about the data, not about the file.
     if score is None:
         level = "indéterminé"
         recommendation = "demande de pièces complémentaires"
-    elif not reliable or issues:
+    elif not reliable or issues or signals:
         recommendation = "demande de pièces complémentaires"
 
     return {
@@ -482,8 +498,12 @@ def compute_score(data):
         "niveau_risque": level,
         "recommandation": recommendation,
         "completude": completeness,
-        "fiabilite": "suffisante" if reliable and not issues else "insuffisante",
-        "alertes": _alerts(data) + [f"Donnée douteuse : {i}" for i in issues],
+        "fiabilite": "suffisante" if reliable and not issues and not signals
+                     else "insuffisante",
+        "alertes": _alerts(data)
+                   + [f"Donnée douteuse : {i}" for i in issues]
+                   + [f"Sécurité : {s}. Chiffres non fiables, "
+                      "vérification manuelle requise." for s in signals],
         "hypotheses": _assumptions(data),
         "criteres_non_evalues": missing,
         "donnees_manquantes": missing_data(data),

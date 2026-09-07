@@ -19,13 +19,15 @@ class LLMError(Exception):
     """Raised when the local model cannot be reached."""
 
 
-def chat(system_prompt, user_prompt, temperature=0):
+def chat(system_prompt, user_prompt, temperature=0, force_json=True):
     """Send a chat request to Ollama and return the raw text answer.
 
     Args:
         system_prompt: The instructions given to the model.
         user_prompt: The content to process.
         temperature: 0 keeps the output stable across runs.
+        force_json: Ask the server for a valid JSON answer. Right for the
+            extraction step, wrong for any step meant to write prose.
 
     Returns:
         The model answer as a string.
@@ -36,13 +38,15 @@ def chat(system_prompt, user_prompt, temperature=0):
     payload = {
         "model": MODEL,
         "stream": False,
-        "format": "json",  # server-side JSON guarantee
         "options": {"temperature": temperature},
         "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ],
     }
+
+    if force_json:
+        payload["format"] = "json"
 
     request = urllib.request.Request(
         f"{BASE_URL}/api/chat",

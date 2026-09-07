@@ -789,6 +789,7 @@ def test_lookup_keeps_the_worst_matching_keyword():
                            scoring.PURPOSE_RISK) == 2
     assert scoring._lookup("Commerce de matériaux de bâtiment",
                            scoring.SECTOR_RISK) == 2
+
 # --- Determinism -------------------------------------------------------------
 
 def test_the_same_input_always_gives_the_same_output():
@@ -802,3 +803,27 @@ def test_scoring_does_not_mutate_the_extracted_data():
     compute_score(data)
 
     assert data == before
+
+def test_injection_signals_block_the_recommendation():
+    """A flagged request never gets an automatic green light."""
+    data = {
+        "loan_type": "pro", "sector": "Conseil", "company_age_years": 10,
+        "revenue": 5_000_000, "net_income": 900_000,
+        "previous_net_income": 800_000, "requested_amount": 80_000,
+        "down_payment": 20_000, "financing_purpose": "Matériel",
+        "injection_signals": ["Instruction détectée dans le texte"],
+    }
+    result = scoring.compute_score(data)
+    assert result["recommandation"] == "demande de pièces complémentaires"
+    assert result["fiabilite"] == "insuffisante"
+
+
+def test_missing_loan_type_without_company_data_is_out_of_scope():
+    """No company figures means no grid, whatever the model failed to say."""
+    data = {
+        "loan_type": None, "requested_amount": 280_000,
+        "financing_purpose": "Résidence principale", "down_payment": 30_000,
+        "existing_debt": 8_000,
+    }
+    assert scoring.compute_score(data)["recommandation"] == \
+        "traitement manuel : grille non applicable"
