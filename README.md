@@ -9,6 +9,25 @@ Outil interne qui transforme une demande de financement en texte libre, copiée
 depuis un email, en fiche de synthèse avec score de risque et recommandation.
 
 Tout tourne en local. Aucune donnée client ne sort de la machine.
+---
+
+## Ce que le projet prouve
+
+| | |
+|---|---|
+| **0 sur 90** | dossiers dont la recommandation change à cause d'une erreur de lecture du modèle |
+| **97,3 %** | de justesse par champ, sur 30 demandes annotées à la main, 3 passages chacune |
+| **3,4 points** | d'écart de score moyen entre les données annotées et les données extraites |
+| **154 tests** | sur le moteur de scoring, sans appel réseau ni modèle |
+
+Ces chiffres viennent d'une éval écrite pour le projet, pas d'une impression.
+Elle a d'abord donné **3 recommandations fausses sur 15**, et c'est en
+cherchant pourquoi qu'est apparue une injection de prompt : une phrase glissée
+dans un email de client faisait passer un dossier de « avis défavorable » à
+« accord de principe ». Le prompt ne suffisait pas à s'en défendre, le code si.
+
+[Comment c'est mesuré, et ce que ça a révélé](#évaluation-de-lextraction)
+
 
 ---
 
