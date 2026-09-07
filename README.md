@@ -2,6 +2,8 @@
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![Ollama](https://img.shields.io/badge/LLM-Ollama%20local-black)
 ![License](https://img.shields.io/badge/license-MIT-green)
+![Eval](https://img.shields.io/badge/eval-97.3%25%20field%20accuracy-brightgreen)
+![Decisions](https://img.shields.io/badge/recommandations%20fauss%C3%A9es-0%2F90-brightgreen)
 
 # Analyse de demandes de crédit professionnel
 
