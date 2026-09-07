@@ -194,6 +194,7 @@ fiche = write_report(data, compute_score(data))
 | `report.py` | Classement des points et rédaction de la fiche |
 | `llm.py` | Client Ollama minimal |
 | `evals/run_eval.py` | Mesure de la brique LLM sur demandes annotées |
+| `evals/dataset.jsonl` | 30 demandes annotées à la main |
 | `prompts.md` | Carnet de bord : itérations, blocages, décisions |
 | `presentation.html` | Support de présentation du projet |
 | `tests/` | Tests du moteur de scoring et de la fiche |
@@ -250,7 +251,7 @@ les casse.
 
 Le moteur de scoring est déterministe, `pytest` suffit à le couvrir. La brique
 LLM ne l'est pas, et c'est la partie incertaine du pipeline. Elle est donc
-mesurée séparément, sur des demandes annotées à la main.
+mesurée séparément, sur 30 demandes annotées à la main.
 
 ```bash
 python evals/run_eval.py --runs 3
@@ -277,20 +278,25 @@ la fiche un chiffre que personne n'a écrit.
 
 Trois passages sur chaque demande, le modèle local n'étant pas déterministe.
 
-| Métrique | Première mesure | Après corrections |
-|---|---|---|
-| Justesse par champ | 93,3 % | 96,0 % |
-| Hallucinations | 0 | 0 |
-| Recommandation changée | 3 sur 15 | 0 sur 15 |
-| Extractions en échec | 0 | 0 |
-
-Mesuré sur 5 demandes, un échantillon volontairement réduit pendant la mise au
-point : assez pour voir d'où viennent les erreurs, pas assez pour annoncer ces
-chiffres comme stables. L'élargissement du jeu est le prochain chantier.
+| Métrique | 5 cas, avant corrections | 5 cas, après | 30 cas |
+|---|---|---|---|
+| Justesse par champ | 93,3 % | 96,0 % | 97,3 % |
+| Hallucinations | 0 | 0 | 3 |
+| Écart de score moyen | 17,0 | 16,8 | 3,4 |
+| Recommandation changée | 3 sur 15 | 0 sur 15 | 0 sur 90 |
+| Extractions en échec | 0 | 0 | 0 |
 
 L'éval a servi à quelque chose : 93 % de justesse par champ cachaient un
 dossier sur cinq mal orienté. Trois défauts en cause, et deux se corrigent
 dans le code plutôt que dans le prompt.
+
+Les trois hallucinations restantes viennent d'un même cas : le modèle recopie
+l'annuité dans le capital restant dû, ce qui compte la dette deux fois. Une
+règle explicite dans le prompt n'y change rien, la correction relève du code.
+
+L'éval a aussi trouvé des bugs dans l'éval : trois annotations du jeu initial
+étaient fausses, comptées comme des hallucinations alors que le modèle avait
+raison. Un jeu de test est du code comme le reste.
 
 ### Ce que l'éval a révélé
 
@@ -329,9 +335,7 @@ Résultats complets dans `evals/results.md`.
   plausibilité attrapent les erreurs d'extraction grossières, sans remplacer
   une vérification humaine.
 - **Filtrage par motifs.** La détection d'injection repose sur des expressions
-  régulières, pas sur une analyse sémantique. Elle attrape les tentatives
-  courantes et laissera passer une formulation inhabituelle. Elle réduit la
-  surface, elle ne la ferme pas.
+  régulières, pas sur une analyse sémantique. 
 - **Seuils non calibrés.** Les poids, les coefficients de secteur et le
   facteur d'estimation de la CAF sont des hypothèses de travail, pas des
   valeurs issues de données de défaut observées.

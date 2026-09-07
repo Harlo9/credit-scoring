@@ -74,7 +74,7 @@ PRÉCISIONS
 - sector : déduis-le de l'activité décrite, même si le mot "secteur" n'apparaît pas. "entreprise de transport" -> "Transport", "SARL de restauration" -> "Restauration", "je suis plombier" -> "Plomberie", "mon salon de coiffure" -> "Coiffure". Null uniquement si l'activité n'est pas identifiable dans le texte.
 - net_income est le résultat net de l'exercice le plus récent, previous_net_income celui de l'exercice précédent.
 - ebitda et caf ne sont remplis que si le texte les donne explicitement. Ne jamais les déduire du résultat net.
-- existing_debt est le capital restant dû ou le montant des crédits en cours.
+- existing_debt est un capital restant dû, jamais une annuité. Si le texte ne donne que le montant remboursé chaque année ("nous remboursons 18 000 € par an"), remplis existing_debt_annual_payment et laisse existing_debt à null. Ne jamais mettre la même valeur dans les deux champs.
 - existing_debt_annual_payment est l'annuité de ces crédits, uniquement si le texte la donne.
 - down_payment vaut 0 si le texte dit explicitement qu'il n'y a pas d'apport, et null si le sujet n'est pas abordé. Cette distinction est importante.
 
