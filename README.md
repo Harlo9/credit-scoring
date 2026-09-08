@@ -151,8 +151,8 @@ la note imprimée à côté de lui.
 Prérequis : Python 3.10 ou plus, et [Ollama](https://ollama.com).
 
 ```bash
-git clone https://github.com/Harlo9/credit-scoring.git
-cd credit-scoring
+git clone https://github.com/Harlo9/llm-credit-scoring.git
+cd llm-credit-scoring
 
 python3 -m venv .venv
 source .venv/bin/activate
